@@ -101,7 +101,7 @@ def query_dm_system_with_personality(query, player_state, world_state):
         player_state['health'] -= 10  # Ejemplo de cómo disminuir la salud por una decisión
         world_state['events'].append("El jugador avanza hacia una cueva oscura.")  # Agregar eventos según la respuesta
 
-        return f"Respuesta del Dungeon Master: {answer.text}"
+        return f"{answer.text}"
 
     except Exception as e:
         return f"Ocurrió un error al realizar la consulta: {e}"
