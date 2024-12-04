@@ -76,6 +76,12 @@ def make_rag_prompt(query: str, relevant_info: str, player_state: dict, world_st
     El jugador pregunta: {query}
     
     Responde de manera épica, desafiando al jugador y adaptándote a sus decisiones. Siempre finaliza con opciones claras para que el jugador decida qué hacer a continuación.
+    Trata de que tus opciones se vean algo asi 
+    ¿Qué deseas hacer ahora? \n
+        1. Explorar la cueva más a fondo.\n
+        2. Regresar al pueblo para prepararte mejor.\n
+        3. Buscar alguna pista en el bosque.\n
+    
     """
     return prompt
 
@@ -108,7 +114,8 @@ def query_dm_system_with_personality(query, player_state, world_state):
         2. Regresar al pueblo para prepararte mejor.
         3. Buscar alguna pista en el bosque.
         """
-        return f"{answer.text}\n{options}"
+        # return f"{answer.text}\n{options}"
+        return f"{answer.text}\n\n"
 
     except Exception as e:
         return f"Ocurrió un error al realizar la consulta: {e}"
