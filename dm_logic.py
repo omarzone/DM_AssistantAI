@@ -66,60 +66,115 @@ def get_relevant_passage(query: str, db, n_results: int):
 
 # Función para construir un prompt con la personalidad del Dungeon Master
 def make_rag_prompt(query: str, relevant_info: str, player_state: dict, world_state: dict):
-    """Construye un prompt con personalidad para el Dungeon Master"""
+    """Construye un prompt para el Dungeon Master que genere una respuesta en JSON estructurado."""
     escaped_info = relevant_info.replace("'", "").replace('"', "").replace("\n", " ")
+    
     prompt = f"""
-    Eres un Dungeon Master sabio y misterioso, pero también un poco travieso. El jugador tiene {player_state['health']} de salud y lleva {player_state['inventory']}.
-    Actualmente está en el {world_state['current_area']} y tiene las siguientes misiones activas: {', '.join(player_state['quests'])}.
-    El jugador ya ha tenido estos eventos: {', '.join(world_state['events'])}.
+    Eres un Dungeon Master sabio y misterioso. Responde al jugador basándote en el siguiente contexto:
+    Información relevante del mundo: {escaped_info}
     
-    El jugador pregunta: {query}
+    Estado del jugador:
+    - Salud: {player_state['health']}
+    - Inventario: {player_state['inventory']}
+    - Misiones activas: {player_state['quests']}
     
-    Responde de manera épica, desafiando al jugador y adaptándote a sus decisiones. Siempre finaliza con opciones claras para que el jugador decida qué hacer a continuación.
-    Trata de que tus opciones se vean algo asi 
-    ¿Qué deseas hacer ahora? \n
-        1. Explorar la cueva más a fondo.\n
-        2. Regresar al pueblo para prepararte mejor.\n
-        3. Buscar alguna pista en el bosque.\n
+    Estado del mundo:
+    - Área actual: {world_state['current_area']}
+    - Eventos pasados: {world_state['events']}
     
+    El jugador pregunta: "{query}"
+    
+    Responde de manera épica, pero estructurada. Proporciona la respuesta en un formato JSON que incluye:
+    1. Un campo "narrative" con la narración épica de lo que sucede.
+    2. Un campo "player_updates" con los cambios al estado del jugador, como salud, inventario o misiones.
+    3. Un campo "world_updates" con los cambios al estado del mundo, como nueva ubicación o eventos adicionales.
+    4. Un campo "options" con las posibles decisiones del jugador, en formato de lista. *ESTA NO SE PUEDE OMITIR NUNCA)
+    
+    IMPORTANTE SEGUIR LA ESTRUCTURA DEL JSON no LO HAGAS CON FORMATOK MARKDOWN, TIENE QUE SER JSON PURO
+    Asegúrate de que el JSON esté bien formado y siempre incluyas opciones posibles al jugador. Aquí tienes un ejemplo del formato esperado:
+    TOdos los objetos tienen que crearse con sus respectivos valores, ninguno puede estar vacio. Si no hay inventate unos de acuerdo al contexto
+    Tampoco puedes agregar nuevos  objetos, se debe respetar exlusivamente la siguiente estructura del JSON
+    Tiene que existir por lo menos una opcion disponible
+    String must be wrapped in double cuotes
+    {{
+        "narrative": "Encuentras una cueva misteriosa y oscura...",
+        "player_updates": {{
+            "health": -10,
+            "inventory": ["antorcha"]
+        }},
+        "world_updates": {{
+            "current_area": "Cueva Oscura",
+            "events": ["El jugador encuentra una cueva misteriosa."]
+        }},
+        "options": [
+            "Explorar la cueva más a fondo.",
+            "Regresar al pueblo para prepararte mejor.",
+            "Buscar alguna pista en el bosque."
+        ]
+    }}
     """
     return prompt
 
+
 # Función para generar la respuesta del Dungeon Master
+import json
+
 def query_dm_system_with_personality(query, player_state, world_state):
-    """Consulta el sistema de Dungeon Master y obtiene una respuesta personalizada con contexto"""
+    """Consulta el sistema de Dungeon Master y actualiza estados según la respuesta en JSON"""
     try:
         # Recuperar los pasajes relevantes
         relevant_info = get_relevant_passage(query, vectorstore, n_results=3)
 
         if not relevant_info:
-            return "No se encontraron respuestas relevantes. El destino del jugador es incierto..."
+            return {
+                "message": "No se encontraron respuestas relevantes. El destino del jugador es incierto...",
+                "player_updates": {},
+                "world_updates": {}
+            }
 
-        # Construir el prompt para el modelo con personalidad
+        # Construir el prompt para el modelo
         prompt = make_rag_prompt(query, relevant_info, player_state, world_state)
 
         # Generar la respuesta del modelo
         genai.configure(api_key=os.environ["GOOGLE_API_KEY"])
         model1 = genai.GenerativeModel("gemini-pro")
-        answer = model1.generate_content(prompt)
+        response = model1.generate_content(prompt)
 
-        # Actualizar el estado del jugador y el mundo basándote en la respuesta
-        player_state['health'] -= 10  # Ejemplo de cómo disminuir la salud por una decisión
-        world_state['events'].append("El jugador avanza hacia una cueva oscura.")  # Agregar eventos según la respuesta
+        # Intentar cargar el JSON de la respuesta
+        try:
+            response_json = json.loads(response.text.replace("'", '"'))
+            #print(response_json)
+        except json.JSONDecodeError:
+            return {
+                "message": f"La respuesta no estaba en el formato JSON esperado: {response.text}",
+                "player_updates": {},
+                "world_updates": {}
+            }
 
-        # Respuesta con opciones
-        options = """
-        ¿Qué deseas hacer ahora?
-        1. Explorar la cueva más a fondo.
-        2. Regresar al pueblo para prepararte mejor.
-        3. Buscar alguna pista en el bosque.
-        """
-        # return f"{answer.text}\n{options}"
-        return f"{answer.text}\n\n"
+        # Extraer la narración y actualizaciones
+        narrative = response_json.get("narrative", "El Dungeon Master guarda silencio...")
+        player_updates = response_json.get("player_updates", {})
+        world_updates = response_json.get("world_updates", {})
+        options = response_json.get("options", [])
+
+        # Formatear opciones para mostrar
+        options_text = "\n".join([f"{i+1}. {option}" for i, option in enumerate(options)])
+
+        return {
+            "message": f"{narrative}\n\n¿Qué deseas hacer ahora?\n{options_text}\n\n---",
+            "player_updates": player_updates,
+            "world_updates": world_updates
+        }
 
     except Exception as e:
-        return f"Ocurrió un error al realizar la consulta: {e}"
+        return {
+            "message": f"Ocurrió un error al realizar la consulta: {e}",
+            "player_updates": {},
+            "world_updates": {}
+        }
+
+
 
 # Ejemplo de uso
-query = "¿Qué sucede si decido explorar la cueva?"
-print(query_dm_system_with_personality(query, player_state, world_state))
+##query = "¿Qué sucede si decido explorar la cueva?"
+#print(query_dm_system_with_personality(query, player_state, world_state))

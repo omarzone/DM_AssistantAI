@@ -1,28 +1,56 @@
 import streamlit as st
 from dm_logic import query_dm_system_with_personality
 
-# Estado inicial del jugador y del mundo
-player_state = {
-    'health': 100,
-    'inventory': ['espada', 'pociones'],
-    'quests': ['explorar la cueva']
-}
+# Inicializar los estados en st.session_state si no existen
+if 'player_state' not in st.session_state:
+    st.session_state.player_state = {
+        'health': 100,
+        'inventory': ['espada', 'pociones'],
+        'quests': ['explorar la cueva']
+    }
 
-world_state = {
-    'current_area': 'bosque oscuro',
-    'events': ['el jugador ha derrotado a un lobo feroz']
-}
+if 'world_state' not in st.session_state:
+    st.session_state.world_state = {
+        'current_area': 'bosque oscuro',
+        'events': ['el jugador ha derrotado a un lobo feroz']
+    }
 
-# Función para manejar el cambio en el input del jugador
+# Manejar el input del jugador
 def handle_player_input():
     player_input = st.session_state.player_input  # Leer la entrada del jugador
     if player_input:
         # Llamar a la función para obtener la respuesta del Dungeon Master
-        response = query_dm_system_with_personality(player_input, player_state, world_state)
+        result = query_dm_system_with_personality(
+            player_input, 
+            st.session_state.player_state, 
+            st.session_state.world_state
+        )
+
+        print(result)
+        # Extraer el mensaje y las actualizaciones de estado
+        message = result["message"]
+        player_updates = result["player_updates"]
+        world_updates = result["world_updates"]
+
+        # Actualizar el estado del jugador
+        for key, value in player_updates.items():
+            if key == "health":
+                st.session_state.player_state[key] += value  # Cambios relativos
+            elif key == "inventory":
+                st.session_state.player_state[key].extend(value)  # Añadir al inventario
+            else:
+                st.session_state.player_state[key] = value  # Otros cambios directos
+
+        # Actualizar el estado del mundo
+        for key, value in world_updates.items():
+            if key == "events":
+                st.session_state.world_state[key].extend(value)  # Añadir eventos
+            else:
+                st.session_state.world_state[key] = value  # Otros cambios directos
 
         # Agregar la entrada y respuesta al historial con formato HTML
         st.session_state.history.append(f"<b style='color:gold;'>Jugador:</b> {player_input}")
-        st.session_state.history.append(f"<b style='color:red;'>Dungeon Master:</b> {response}")
+        st.session_state.history.append(f"<b style='color:red;'>Dungeon Master:</b> {message}")
 
         # Limpiar la entrada después de procesarla
         st.session_state.player_input = ""  # Limpiar el campo de texto
@@ -54,11 +82,11 @@ with col1:
 with col2:
     # Mostrar el estado del jugador
     st.subheader("Estado del Jugador")
-    st.write(f"**Salud**: {player_state['health']}")
-    st.write(f"**Inventario**: {', '.join(player_state['inventory'])}")
-    st.write(f"**Misión actual**: {', '.join(player_state['quests'])}")
+    st.write(f"**Salud**: {st.session_state.player_state['health']}")
+    st.write(f"**Inventario**: {', '.join(st.session_state.player_state['inventory'])}")
+    st.write(f"**Misión actual**: {', '.join(st.session_state.player_state['quests'])}")
 
     # Mostrar el estado del mundo
     st.subheader("Estado del Mundo")
-    st.write(f"**Área actual**: {world_state['current_area']}")
-    st.write(f"**Eventos recientes**: {', '.join(world_state['events'])}")
+    st.write(f"**Área actual**: {st.session_state.world_state['current_area']}")
+    st.write(f"**Eventos recientes**: {', '.join(st.session_state.world_state['events'])}")
