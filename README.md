@@ -40,7 +40,7 @@ Crea un archivo `.env` en la raíz de tu proyecto con el siguiente contenido:
 
 ```env
 GOOGLE_API_KEY=your_google_api_key_here
-
+```
 Reemplaza `your_google_api_key_here` con tu clave API de Google.
 
 ### Archivo config.json
@@ -52,6 +52,7 @@ Asegúrate de tener un archivo `config.json` en la raíz de tu proyecto con el s
     "pdf_path": "data/manual.pdf",
     "persist_directory": "db"
 }
+```
 
 Reemplaza `"data/manual.pdf"` con la ruta al manual en formato PDF y `"db"` con el directorio donde deseas guardar los datos persistentes.
 
