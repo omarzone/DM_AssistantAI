@@ -113,5 +113,3 @@ for key, value in world_updates.items():
 Este proyecto está licenciado bajo la Licencia MIT. Consulta el archivo [LICENSE](LICENSE) para más detalles.
 
 ---
-
-¡Espero que este README sea útil y atractivo para tu proyecto! 🎉
