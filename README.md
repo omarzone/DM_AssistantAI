@@ -1,6 +1,6 @@
 # Dungeon Master Assistant AI 🧙‍♂️🗺️
 
-![Dungeon Master Assistant AI](https://your-image-url.com/banner.png)
+![Dungeon Master Assistant AI](img/logo.png)
 
 Dungeon Master Assistant AI es una herramienta poderosa diseñada para ayudar a los Dungeon Masters a crear y gestionar aventuras de Dungeons & Dragons. Utiliza inteligencia artificial para generar narrativas, actualizar estados de jugadores y del mundo, y proporcionar opciones interactivas para los jugadores.
 
