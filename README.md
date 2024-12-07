@@ -97,7 +97,7 @@ for key, value in world_updates.items():
         st.session_state.world_state[key].extend(value)  # Añadir eventos
     else:
         st.session_state.world_state[key] = value  # Otros cambios directos
-
+```
 ## 🤝 Contribuciones
 
 ¡Las contribuciones son bienvenidas! Si deseas contribuir, por favor sigue estos pasos:
