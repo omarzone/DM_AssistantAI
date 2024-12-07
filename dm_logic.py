@@ -4,13 +4,20 @@ from langchain_chroma import Chroma
 import json
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 import google.generativeai as genai
+from dotenv import load_dotenv
+
+# Cargar las variables de entorno desde el archivo .env
+load_dotenv()
+
+# Configurar la clave API de Google Gemini desde el archivo .env
+google_api_key = os.getenv("GOOGLE_API_KEY")
+if not google_api_key:
+    raise ValueError("Google API key not found. Please set it in the .env file.")
 
 # Cargar configuración desde config.json
 with open("config.json", "r") as config_file:
     config = json.load(config_file)
 
-# Configurar la clave API de Google Gemini desde el archivo config.json
-os.environ["GOOGLE_API_KEY"] = config["GOOGLE_API_KEY"]
 
 # Crear cliente persistente de ChromaDB desde la ruta persistente proporcionada
 chroma_client = chromadb.PersistentClient(path=config["persist_directory"])
@@ -34,7 +41,7 @@ else:
     collection = chroma_client.create_collection(name=collection_name)
 
 # Configurar el modelo de embeddings de Google (mismo modelo que en setup.py)
-embeddings_model = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
+embeddings_model = GoogleGenerativeAIEmbeddings(model="models/embedding-001", temperature=0.4)
 
 # Crear el vectorstore utilizando el modelo de embeddings
 vectorstore = Chroma(
@@ -136,7 +143,7 @@ def query_dm_system_with_personality(query, player_state, world_state):
         prompt = make_rag_prompt(query, relevant_info, player_state, world_state)
 
         # Generar la respuesta del modelo
-        genai.configure(api_key=os.environ["GOOGLE_API_KEY"])
+        genai.configure(api_key=google_api_key)
         model1 = genai.GenerativeModel("gemini-pro")
         response = model1.generate_content(prompt)
 

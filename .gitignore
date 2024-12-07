@@ -1,0 +1,13 @@
+# Ignorar la carpeta db
+db/
+
+# Ignorar entornos virtuales
+venv/
+.env
+
+# Ignorar archivos de configuración específicos del entorno
+*.env
+
+# Ignorar archivos de compilación
+__pycache__/
+*.pyc

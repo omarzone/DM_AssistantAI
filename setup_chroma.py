@@ -1,14 +1,28 @@
 import os
+import json
 import chromadb
 from langchain.document_loaders import PyPDFLoader
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
+from dotenv import load_dotenv
+
+# Cargar las variables de entorno desde el archivo .env
+load_dotenv()
 
 # Configura la clave API de Google Gemini
-if "GOOGLE_API_KEY" not in os.environ:
-    os.environ["GOOGLE_API_KEY"] = input("Please enter your Google API key: ")
+google_api_key = os.getenv("GOOGLE_API_KEY")
+if not google_api_key:
+    raise ValueError("Google API key not found. Please set it in the .env file.")
+
+# Cargar las variables de configuración desde el archivo config.json
+with open('config.json', 'r') as config_file:
+    config = json.load(config_file)
+
+# Configurar el directorio persistente y la ruta del manual desde config.json
+persist_directory = config.get("persist_directory", "db")
+manual_path = config.get("pdf_path", "data/manual.pdf")
 
 # Cargar el PDF y extraer el texto
-loader = PyPDFLoader("data/manual.pdf")
+loader = PyPDFLoader(manual_path)
 documents = loader.load()
 texts = [doc.page_content for doc in documents]
 
@@ -23,7 +37,6 @@ def get_embeddings(texts):
     return embeddings
 
 # Crear cliente persistente de ChromaDB y colección
-persist_directory = "db"  # Directorio donde se guardarán los datos persistentes
 chroma_client = chromadb.PersistentClient(path=persist_directory)  # Asegúrate de usar la ruta correcta
 
 # Crear colección o acceder a una existente

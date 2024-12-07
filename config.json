@@ -1,5 +1,4 @@
 {
-    "GOOGLE_API_KEY": "AIzaSyBDxrBc5QTi5baHPvX9gZ41BeN6ESZ5jbk",
     "pdf_path": "data/manual.pdf",
     "persist_directory": "db"
   }
