@@ -75,50 +75,39 @@ def get_relevant_passage(query: str, db, n_results: int):
 def make_rag_prompt(query: str, relevant_info: str, player_state: dict, world_state: dict):
     """Construye un prompt para el Dungeon Master que genere una respuesta en JSON estructurado."""
     escaped_info = relevant_info.replace("'", "").replace('"', "").replace("\n", " ")
-    
+
     prompt = f"""
     Eres un Dungeon Master sabio y misterioso. Responde al jugador basándote en el siguiente contexto:
+    
     Información relevante del mundo: {escaped_info}
     
     Estado del jugador:
-    - Salud: {player_state['health']}
-    - Inventario: {player_state['inventory']}
-    - Misiones activas: {player_state['quests']}
+    - Salud: {player_state["health"]}
+    - Inventario: {player_state["inventory"]}
+    - Misiones activas: {player_state["quests"]}
     
     Estado del mundo:
-    - Área actual: {world_state['current_area']}
-    - Eventos pasados: {world_state['events']}
+    - Área actual: {world_state["current_area"]}
+    - Eventos pasados: {world_state["events"]}
     
     El jugador pregunta: "{query}"
     
-    Responde de manera épica, pero estructurada. Proporciona la respuesta en un formato JSON que incluye:
-    1. Un campo "narrative" con la narración épica de lo que sucede.
-    2. Un campo "player_updates" con los cambios al estado del jugador, como salud, inventario o misiones.
-    3. Un campo "world_updates" con los cambios al estado del mundo, como nueva ubicación o eventos adicionales.
-    4. Un campo "options" con las posibles decisiones del jugador, en formato de lista. *ESTA NO SE PUEDE OMITIR NUNCA)
+    Use this JSON schema:
     
-    IMPORTANTE SEGUIR LA ESTRUCTURA DEL JSON no LO HAGAS CON FORMATOK MARKDOWN, TIENE QUE SER JSON PURO
-    Asegúrate de que el JSON esté bien formado y siempre incluyas opciones posibles al jugador. Aquí tienes un ejemplo del formato esperado:
-    TOdos los objetos tienen que crearse con sus respectivos valores, ninguno puede estar vacio. Si no hay inventate unos de acuerdo al contexto
-    Tampoco puedes agregar nuevos  objetos, se debe respetar exlusivamente la siguiente estructura del JSON
-    Tiene que existir por lo menos una opcion disponible
-    String must be wrapped in double cuotes
-    {{
-        "narrative": "Encuentras una cueva misteriosa y oscura...",
+    Response = {{
+        "narrative": str,
         "player_updates": {{
-            "health": -10,
-            "inventory": ["antorcha"]
+            "health": int,
+            "inventory": list[str]
         }},
         "world_updates": {{
-            "current_area": "Cueva Oscura",
-            "events": ["El jugador encuentra una cueva misteriosa."]
+            "current_area": str,
+            "events": list[str]
         }},
-        "options": [
-            "Explorar la cueva más a fondo.",
-            "Regresar al pueblo para prepararte mejor.",
-            "Buscar alguna pista en el bosque."
-        ]
+        "options": list[str]  # Esta lista NO PUEDE estar vacía, debe haber al menos una opción.
     }}
+    
+    Return: Response
     """
     return prompt
 
@@ -144,12 +133,23 @@ def query_dm_system_with_personality(query, player_state, world_state):
 
         # Generar la respuesta del modelo
         genai.configure(api_key=google_api_key)
-        model1 = genai.GenerativeModel("gemini-pro")
+        # for m in genai.list_models():
+        #     if 'generateContent' in m.supported_generation_methods:
+        #         print(m.name)
+        model1 = genai.GenerativeModel("gemini-2.0-flash")
+        
         response = model1.generate_content(prompt)
+        print(response.text)
+        
+        
+
 
         # Intentar cargar el JSON de la respuesta
         try:
-            response_json = json.loads(response.text.replace("'", '"'))
+            response_text = response.text.strip("```json").strip("```").strip()
+
+    # Intentar cargar la respuesta como JSON
+            response_json = json.loads(response_text)
             #print(response_json)
         except json.JSONDecodeError:
             return {
@@ -182,6 +182,6 @@ def query_dm_system_with_personality(query, player_state, world_state):
 
 
 
-# Ejemplo de uso
-##query = "¿Qué sucede si decido explorar la cueva?"
-#print(query_dm_system_with_personality(query, player_state, world_state))
+# # Ejemplo de uso
+# query = "¿Qué sucede si decido explorar la cueva?"
+# print(query_dm_system_with_personality(query, player_state, world_state))
